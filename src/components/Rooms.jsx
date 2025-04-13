@@ -1,35 +1,31 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import RoomCard from "../Card/RoomCard";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
 
 const Rooms = () => {
-  const allRooms = [
-    {
-      id: 1,
-      name: "Himalaya View",
-      price: 4500,
-      image: "/src/images/image1.jpeg",
-    },
-    {
-      id: 2,
-      name: "Front Side Deluxe",
-      price: 4000,
-      image: "/src/images/image2.jpeg",
-    },
-    {
-      id: 3,
-      name: "Himalaya View",
-      price: 4500,
-      image: "/src/images/hotel.jpg",
-    },
-    {
-      id: 4,
-      name: "Cozy Cottage",
-      price: 3800,
-      image: "/src/images/image3.jpeg",
-    },
-  ];
-
+  const [allRooms, setAllRooms] = useState([]);
   const [selectedType, setSelectedType] = useState("All");
+  const [loading, setLoading] = useState(true);
+
+  const fetchRooms = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, "rooms"));
+      const rooms = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setAllRooms(rooms);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to fetch rooms:", err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRooms();
+  }, []);
 
   const handleFilter = (type) => {
     setSelectedType(type);
@@ -70,17 +66,27 @@ const Rooms = () => {
           ))}
         </div>
 
-        {/* Room Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredRooms.map((room) => (
-            <RoomCard
-              key={room.id}
-              name={room.name}
-              price={room.price}
-              image={room.image}
-            />
-          ))}
-        </div>
+        {/* Loading Spinner */}
+        {loading ? (
+          <div className="text-center text-blue-600 text-lg">Loading rooms...</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredRooms.length > 0 ? (
+              filteredRooms.map((room) => (
+                <RoomCard
+                  key={room.id}
+                  name={room.name}
+                  price={room.price}
+                  image={room.image}
+                />
+              ))
+            ) : (
+              <p className="text-center text-gray-600 col-span-full">
+                No rooms found for this filter.
+              </p>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
